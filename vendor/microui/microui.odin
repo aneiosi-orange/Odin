@@ -244,7 +244,7 @@ Context :: struct {
 	mouse_pressed_bits:                  Mouse_Set,
 	mouse_released_bits:                 Mouse_Set,
 	key_down_bits, key_pressed_bits:     Key_Set,
-	_text_store:                         [MAX_TEXT_STORE]u8,
+	_text_store:                         [dynamic; MAX_TEXT_STORE]u8,
 	text_input:                          strings.Builder, // uses `_text_store` as backing store with nil_allocator.
 	textbox_state:                       textedit.State,
 	textbox_offset:                      i32,
@@ -329,7 +329,7 @@ init :: proc(
 	ctx.draw_frame  = default_draw_frame
 	ctx._style      = default_style
 	ctx.style       = &ctx._style
-	ctx.text_input  = strings.builder_from_bytes(ctx._text_store[:])
+	ctx.text_input  = strings.builder_from_bytes(ctx._text_store)
 
 	ctx.textbox_state.set_clipboard       = set_clipboard
 	ctx.textbox_state.get_clipboard       = get_clipboard
