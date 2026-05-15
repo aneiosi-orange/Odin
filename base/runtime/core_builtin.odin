@@ -118,7 +118,6 @@ copy_from_string16 :: #force_inline proc "contextless" (dst: $T/[]$E/u16, src: $
 copy :: proc{copy_slice, copy_from_string, copy_from_string16}
 
 
-
 // `unordered_remove_dynamic_array` removed the element at the specified `index`. It does so by replacing the current end value
 // with the old value, and reducing the length of the dynamic array by 1.
 //
@@ -227,7 +226,6 @@ remove_range :: proc{
 	remove_range_dynamic_array,
 	remove_range_fixed_capacity_dynamic_array,
 }
-
 
 
 // `pop_dynamic_array` will remove and return the end value of dynamic array `array` and reduces the length of `array` by 1.
@@ -382,7 +380,6 @@ pop_front_safe :: proc {
 }
 
 
-
 // `clear` will set the length of a passed dynamic array or map to `0`
 @builtin
 clear :: proc{
@@ -440,7 +437,6 @@ free :: proc{mem_free}
 // `free_all` will try to free/reset all of the memory of the given `allocator` if the allocator supports this operation.
 @builtin
 free_all :: proc{mem_free_all}
-
 
 
 // `delete_string` will try to free the underlying data of the passed string, with the given `allocator` if the allocator supports this operation.
@@ -557,24 +553,27 @@ make_slice :: proc($T: typeid/[]$E, #any_int len: int, allocator := context.allo
 	err = _make_aligned_type_erased(&res, size_of(E), len, align_of(E), allocator, loc)
 	return
 }
+
 // `make_dynamic_array` allocates and initializes a dynamic array. Like `new`, the first argument is a type, not a value.
 // Unlike `new`, `make`'s return value is the same as the type of its argument, not a pointer to it.
 //
 // Note: Prefer using the procedure group `make`.
 @(builtin, require_results)
 make_dynamic_array :: proc($T: typeid/[dynamic]$E, allocator := context.allocator, loc := #caller_location) -> (array: T, err: Allocator_Error) #optional_allocator_error {
-	err = _make_dynamic_array_len_cap((^Raw_Dynamic_Array)(&array), size_of(E), align_of(E), 0, 0, allocator, loc)
+	err = _make_dynamic_array_len_cap((^Raw_Dynamic_Array)(&array), size_of(E), align_of(E), 0, DEFAULT_DYNAMIC_ARRAY_CAPACITY, allocator, loc)
 	return
 }
+
 // `make_dynamic_array_len` allocates and initializes a dynamic array. Like `new`, the first argument is a type, not a value.
 // Unlike `new`, `make`'s return value is the same as the type of its argument, not a pointer to it.
 //
 // Note: Prefer using the procedure group `make`.
 @(builtin, require_results)
 make_dynamic_array_len :: proc($T: typeid/[dynamic]$E, #any_int len: int, allocator := context.allocator, loc := #caller_location) -> (array: T, err: Allocator_Error) #optional_allocator_error {
-	err = _make_dynamic_array_len_cap((^Raw_Dynamic_Array)(&array), size_of(E), align_of(E), len, len, allocator, loc)
+	err = _make_dynamic_array_len_cap((^Raw_Dynamic_Array)(&array), size_of(E), align_of(E), len, max(len, DEFAULT_DYNAMIC_ARRAY_CAPACITY), allocator, loc)
 	return
 }
+
 // `make_dynamic_array_len_cap` allocates and initializes a dynamic array. Like `new`, the first argument is a type, not a value.
 // Unlike `new`, `make`'s return value is the same as the type of its argument, not a pointer to it.
 //
@@ -637,7 +636,6 @@ make_multi_pointer :: proc($T: typeid/[^]$E, #any_int len: int, allocator := con
 	return
 }
 
-
 // `make` built-in procedure allocates and initializes a value of type slice, dynamic array, map, or multi-pointer (only).
 //
 // Similar to `new`, the first argument is a type, not a value. Unlike new, make's return type is the same as the
@@ -658,7 +656,6 @@ make :: proc{
 	make_soa_dynamic_array_len,
 	make_soa_dynamic_array_len_cap,
 }
-
 
 
 // `clear_map` will set the length of a passed map to `0`
@@ -839,7 +836,6 @@ non_zero_append_elem_string :: proc(array: ^$T/[dynamic]$E/u8, arg: $A/string, l
 non_zero_append_elem_fixed_capacity_string :: proc "contextless" (array: ^$T/[dynamic; $N]$E/u8, arg: $A/string) -> (n: int) {
 	return append_fixed_capacity_elem(array, transmute([]byte)arg)
 }
-
 
 
 // The append_string built-in procedure appends multiple strings to the end of a [dynamic]u8 like type
@@ -1131,7 +1127,6 @@ inject_at :: proc{
 }
 
 
-
 // `assign_at_elem` assigns a value at a given index. If the requested index is past the end of the current
 // size of the dynamic array, it will attempt to `resize` the a new length of `index+1` and then assign as `index`.
 @builtin
@@ -1250,7 +1245,6 @@ assign_at :: proc{
 	assign_at_elems_fixed_capacity_dynamic_array,
 	assign_at_elem_string_fixed_capacity_dynamic_array,
 }
-
 
 
 // `clear_dynamic_array` will set the length of a passed dynamic array to `0`
@@ -1393,7 +1387,6 @@ non_zero_resize_dynamic_array :: proc(array: ^$T/[dynamic]$E, #any_int length: i
 }
 
 
-
 // `resize_fixed_capacity_dynamic_array` will try to resize memory of a passed fixed capacity dynamic array or map to the requested element count (setting the `len`, and possibly `cap`).
 //
 // Note: Prefer the procedure group `resize`
@@ -1524,7 +1517,6 @@ map_entry :: proc(m: ^$T/map[$K]$V, key: K, loc := #caller_location) -> (key_ptr
 card :: proc "contextless" (s: $S/bit_set[$E; $U]) -> int {
 	return int(intrinsics.count_ones(transmute(intrinsics.type_bit_set_underlying_type(S))s))
 }
-
 
 
 // Evaluates the condition and panics the program if and only if (⟺) the condition is false.

@@ -144,34 +144,34 @@ Command_Variant :: union {
 	^Command_Text,
 	^Command_Icon,
 }
-Command :: struct { 
+Command :: struct {
 	variant: Command_Variant,
-	size:    i32, 
+	size:    i32,
 }
-Command_Jump :: struct { 
-	using command: Command, 
+Command_Jump :: struct {
+	using command: Command,
 	dst: rawptr,
 }
-Command_Clip :: struct { 
-	using command: Command, 
+Command_Clip :: struct {
+	using command: Command,
 	rect: Rect,
 }
-Command_Rect :: struct { 
-	using command: Command, 
-	rect:  Rect, 
+Command_Rect :: struct {
+	using command: Command,
+	rect:  Rect,
 	color: Color,
 }
-Command_Text :: struct { 
-	using command: Command, 
-	font:  Font, 
-	pos:   Vec2, 
-	color: Color, 
-	str:   string, /* + string data (VLA) */ 
+Command_Text :: struct {
+	using command: Command,
+	font:  Font,
+	pos:   Vec2,
+	color: Color,
+	str:   string, /* + string data (VLA) */
 }
-Command_Icon :: struct { 
-	using command: Command, 
-	rect:  Rect, 
-	id:    Icon, 
+Command_Icon :: struct {
+	using command: Command,
+	rect:  Rect,
+	id:    Icon,
 	color: Color,
 }
 
@@ -224,8 +224,7 @@ Context :: struct {
 	frame:                               Frame_Index,
 	hover_root, next_hover_root:         ^Container,
 	scroll_target:                       ^Container,
-	number_edit_buf:                     [MAX_FMT]u8,
-	number_edit_len:                     int,
+	number_edit_buf:                     [dynamic; MAX_FMT]u8,
 	number_edit_id:                      Id,
 	/* stacks */
 	command_list:                        Stack(u8, COMMAND_LIST_SIZE),
@@ -255,14 +254,14 @@ Stack :: struct($T: typeid, $N: int) {
 	idx:   i32,
 	items: [N]T,
 }
-push :: #force_inline proc(stk: ^$T/Stack($V,$N), val: V) { 
+push :: #force_inline proc(stk: ^$T/Stack($V,$N), val: V) {
 	assert(stk.idx < len(stk.items))
-	stk.items[stk.idx] = val 
-	stk.idx += 1 
+	stk.items[stk.idx] = val
+	stk.idx += 1
 }
-pop  :: #force_inline proc(stk: ^$T/Stack($V,$N)) { 
-	assert(stk.idx > 0) 
-	stk.idx -= 1 
+pop  :: #force_inline proc(stk: ^$T/Stack($V,$N)) {
+	assert(stk.idx > 0)
+	stk.idx -= 1
 }
 
 unclipped_rect := Rect{0, 0, 0x1000000, 0x1000000}
@@ -309,7 +308,7 @@ rect_overlaps_vec2 :: proc(r: Rect, p: Vec2) -> bool {
 	return p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h
 }
 
-@private 
+@private
 default_draw_frame :: proc(ctx: ^Context, rect: Rect, colorid: Color_Type) {
 	draw_rect(ctx, rect, ctx.style.colors[colorid])
 	if colorid == .SCROLL_BASE || colorid == .SCROLL_THUMB || colorid == .TITLE_BG {
@@ -419,9 +418,9 @@ set_focus :: proc(ctx: ^Context, id: Id) {
 get_id         :: proc{get_id_string, get_id_bytes, get_id_rawptr, get_id_uintptr}
 get_id_string  :: #force_inline proc(ctx: ^Context, str: string)             -> Id { return get_id_bytes(ctx, transmute([]byte) str) }
 get_id_rawptr  :: #force_inline proc(ctx: ^Context, data: rawptr, size: int) -> Id { return get_id_bytes(ctx, ([^]u8)(data)[:size])  }
-get_id_uintptr :: #force_inline proc(ctx: ^Context, ptr: uintptr) -> Id { 
+get_id_uintptr :: #force_inline proc(ctx: ^Context, ptr: uintptr) -> Id {
 	ptr := ptr
-	return get_id_bytes(ctx, ([^]u8)(&ptr)[:size_of(ptr)])  
+	return get_id_bytes(ctx, ([^]u8)(&ptr)[:size_of(ptr)])
 }
 get_id_bytes   :: proc(ctx: ^Context, bytes: []byte) -> Id {
 	/* 32bit fnv-1a hash */
@@ -434,7 +433,7 @@ get_id_bytes   :: proc(ctx: ^Context, bytes: []byte) -> Id {
 			cptr = cptr[1:]
 		}
 	}
-	
+
 	idx := ctx.id_stack.idx
 	res := ctx.id_stack.items[idx - 1] if idx > 0 else HASH_INITIAL
 	hash(&res, bytes)
@@ -469,12 +468,12 @@ get_clip_rect :: proc(ctx: ^Context) -> Rect {
 check_clip :: proc(ctx: ^Context, r: Rect) -> Clip {
 	cr := get_clip_rect(ctx)
 	if r.x > cr.x + cr.w || r.x + r.w < cr.x ||
-	   r.y > cr.y + cr.h || r.y + r.h < cr.y { 
-		return .ALL 
+	   r.y > cr.y + cr.h || r.y + r.h < cr.y {
+		return .ALL
 	}
 	if r.x >= cr.x && r.x + r.w <= cr.x + cr.w &&
-	   r.y >= cr.y && r.y + r.h <= cr.y + cr.h { 
-		return .NONE 
+	   r.y >= cr.y && r.y + r.h <= cr.y + cr.h {
+		return .NONE
 	}
 	return .PART
 }
@@ -483,7 +482,7 @@ get_layout :: proc(ctx: ^Context) -> ^Layout {
 	return &ctx.layout_stack.items[ctx.layout_stack.idx - 1]
 }
 
-@private 
+@private
 push_layout :: proc(ctx: ^Context, body: Rect, scroll: Vec2) {
 	layout: Layout
 	layout.body = Rect{body.x - scroll.x, body.y - scroll.y, body.w, body.h}
@@ -492,7 +491,7 @@ push_layout :: proc(ctx: ^Context, body: Rect, scroll: Vec2) {
 	layout_row(ctx, {0})
 }
 
-@private 
+@private
 pop_container :: proc(ctx: ^Context) {
 	cnt := get_current_container(ctx)
 	layout := get_layout(ctx)
@@ -626,8 +625,8 @@ push_command :: proc(ctx: ^Context, $Type: typeid, extra_size := 0) -> ^Type {
 next_command :: proc "contextless" (ctx: ^Context, pcmd: ^^Command) -> bool {
 	cmd := pcmd^
 	defer pcmd^ = cmd
-	if cmd != nil { 
-		cmd = (^Command)(uintptr(cmd) + uintptr(cmd.size)) 
+	if cmd != nil {
+		cmd = (^Command)(uintptr(cmd) + uintptr(cmd.size))
 	} else {
 		cmd = (^Command)(&ctx.command_list.items[0])
 	}
@@ -833,7 +832,7 @@ layout_next :: proc(ctx: ^Context) -> (res: Rect) {
 ** controls
 **============================================================================*/
 
-@private 
+@private
 in_hover_root :: proc(ctx: ^Context) -> bool {
 	for i := ctx.container_stack.idx - 1; i >= 0; i -= 1 {
 		if ctx.container_stack.items[i] == ctx.hover_root {
@@ -988,7 +987,7 @@ checkbox :: proc(ctx: ^Context, label: string, state: ^bool) -> (res: Result_Set
 	return
 }
 
-textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect, opt := Options{}) -> (res: Result_Set) {
+textbox_raw :: proc(ctx: ^Context, textbuf: []u8, id: Id, r: Rect, opt := Options{}) -> (res: Result_Set) {
 	update_control(ctx, id, r, opt | {.HOLD_FOCUS})
 
 	font := ctx.style.font
@@ -996,7 +995,6 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 	if ctx.focus_id == id {
 		/* create a builder backed by the user's buffer */
 		builder := strings.builder_from_bytes(textbuf)
-		non_zero_resize(&builder.buf, textlen^)
 		ctx.textbox_state.builder = &builder
 		if ctx.textbox_state.id != u64(id) {
 			ctx.textbox_state.id = u64(id)
@@ -1004,25 +1002,23 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 		}
 
 		/* check selection bounds */
-		if ctx.textbox_state.selection[0] > textlen^ || ctx.textbox_state.selection[1] > textlen^ {
+		if ctx.textbox_state.selection[0] > len(textbuf) || ctx.textbox_state.selection[1] > len(textbuf) {
 			ctx.textbox_state.selection = {}
 		}
 
 		/* handle text input */
 		if strings.builder_len(ctx.text_input) > 0 {
 			if textedit.input_text(&ctx.textbox_state, strings.to_string(ctx.text_input)) > 0 {
-				textlen^ = strings.builder_len(builder)
 				res += {.CHANGE}
 			}
 		}
 		/* handle ctrl+a */
 		if .A in ctx.key_pressed_bits && .CTRL in ctx.key_down_bits && .ALT not_in ctx.key_down_bits {
-			ctx.textbox_state.selection = {textlen^, 0}
+			ctx.textbox_state.selection = {len(textbuf), 0}
 		}
 		/* handle ctrl+x */
 		if .X in ctx.key_pressed_bits && .CTRL in ctx.key_down_bits && .ALT not_in ctx.key_down_bits {
 			if textedit.cut(&ctx.textbox_state) {
-				textlen^ = strings.builder_len(builder)
 				res += {.CHANGE}
 			}
 		}
@@ -1033,7 +1029,6 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 		/* handle ctrl+v */
 		if .V in ctx.key_pressed_bits && .CTRL in ctx.key_down_bits && .ALT not_in ctx.key_down_bits {
 			if textedit.paste(&ctx.textbox_state) {
-				textlen^ = strings.builder_len(builder)
 				res += {.CHANGE}
 			}
 		}
@@ -1070,16 +1065,14 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 			}
 		}
 		/* handle backspace/delete */
-		if .BACKSPACE in ctx.key_pressed_bits && textlen^ > 0 {
+		if .BACKSPACE in ctx.key_pressed_bits && len(textbuf) > 0 {
 			move: textedit.Translation = .Word_Left if .CTRL in ctx.key_down_bits else .Left
 			textedit.delete_to(&ctx.textbox_state, move)
-			textlen^ = strings.builder_len(builder)
 			res += {.CHANGE}
 		}
-		if .DELETE in ctx.key_pressed_bits && textlen^ > 0 {
+		if .DELETE in ctx.key_pressed_bits && len(textbuf) > 0 {
 			move: textedit.Translation = .Word_Right if .CTRL in ctx.key_down_bits else .Right
 			textedit.delete_to(&ctx.textbox_state, move)
-			textlen^ = strings.builder_len(builder)
 			res += {.CHANGE}
 		}
 		/* handle return */
@@ -1090,8 +1083,8 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 
 		/* handle click/drag */
 		if .LEFT in ctx.mouse_down_bits {
-			idx := textlen^
-			for i in 0..<textlen^ {
+			idx := len(textbuf)
+			for i in 0..<idx {
 				/* skip continuation bytes */
 				if textbuf[i] >= 0x80 && textbuf[i] < 0xc0 {
 					continue
@@ -1108,7 +1101,7 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 		}
 	}
 
-	textstr := string(textbuf[:textlen^])
+	textstr := string(textbuf)
 
 	/* draw */
 	draw_control_frame(ctx, id, r, .BASE, opt)
@@ -1136,22 +1129,21 @@ textbox_raw :: proc(ctx: ^Context, textbuf: []u8, textlen: ^int, id: Id, r: Rect
 	return
 }
 
-@private 
+@private
 parse_real :: #force_inline proc(s: string) -> (Real, bool) {
 	f, ok := strconv.parse_f64(s)
 	return Real(f), ok
 }
- 
+
 number_textbox :: proc(ctx: ^Context, value: ^Real, r: Rect, id: Id, fmt_string: string) -> bool {
 	if ctx.mouse_pressed_bits == {.LEFT} && .SHIFT in ctx.key_down_bits && ctx.hover_id == id {
 		ctx.number_edit_id = id
-		nstr := fmt.bprintf(ctx.number_edit_buf[:], fmt_string, value^)
-		ctx.number_edit_len = len(nstr)
+		fmt.bprintf(ctx.number_edit_buf[:], fmt_string, value^)
 	}
 	if ctx.number_edit_id == id {
-		res := textbox_raw(ctx, ctx.number_edit_buf[:], &ctx.number_edit_len, id, r, {})
+		res := textbox_raw(ctx, ctx.number_edit_buf[:], id, r, {})
 		if .SUBMIT in res || ctx.focus_id != id {
-			value^, _ = parse_real(string(ctx.number_edit_buf[:ctx.number_edit_len]))
+			value^, _ = parse_real(string(ctx.number_edit_buf[:]))
 			ctx.number_edit_id = 0
 		} else {
 			return true
@@ -1160,10 +1152,10 @@ number_textbox :: proc(ctx: ^Context, value: ^Real, r: Rect, id: Id, fmt_string:
 	return false
 }
 
-textbox :: proc(ctx: ^Context, buf: []u8, textlen: ^int, opt := Options{}) -> Result_Set {
+textbox :: proc(ctx: ^Context, buf: []u8, opt := Options{}) -> Result_Set {
 	id := get_id(ctx, uintptr(&buf[0]))
 	r := layout_next(ctx)
-	return textbox_raw(ctx, buf, textlen, id, r, opt)
+	return textbox_raw(ctx, buf, id, r, opt)
 }
 
 slider :: proc(ctx: ^Context, value: ^Real, low, high: Real, step: Real = 0.0, fmt_string: string = SLIDER_FMT, opt: Options = {.ALIGN_CENTER}) -> (res: Result_Set) {
@@ -1238,7 +1230,7 @@ number :: proc(ctx: ^Context, value: ^Real, step: Real, fmt_string: string = SLI
 	return
 }
 
-@private 
+@private
 _header :: proc(ctx: ^Context, label: string, is_treenode: bool, opt := Options{}) -> Result_Set {
 	id := get_id(ctx, label)
 	idx, active := pool_get(ctx, ctx.treenode_pool[:], id)
@@ -1308,7 +1300,7 @@ treenode :: proc(ctx: ^Context, label: string, opt := Options{}) -> Result_Set {
 }
 
 
-@private 
+@private
 scrollbar :: proc(ctx: ^Context, cnt: ^Container, _b: ^Rect, cs: Vec2, id_string: string, i: int) {
 	b := (^struct{ pos, size: [2]i32 })(_b)
 	#assert(size_of(b^) == size_of(_b^))
@@ -1349,7 +1341,7 @@ scrollbar :: proc(ctx: ^Context, cnt: ^Container, _b: ^Rect, cs: Vec2, id_string
 	}
 }
 
-@private 
+@private
 scrollbars :: proc(ctx: ^Context, cnt: ^Container, body: ^Rect) {
 	sz := ctx.style.scrollbar_size
 	cs := cnt.content_size
@@ -1366,7 +1358,7 @@ scrollbars :: proc(ctx: ^Context, cnt: ^Container, body: ^Rect) {
 	pop_clip_rect(ctx)
 }
 
-@private 
+@private
 push_container_body :: proc(ctx: ^Context, cnt: ^Container, body: Rect, opt := Options{}) {
 	body := body
 	if .NO_SCROLL not_in opt {
@@ -1376,7 +1368,7 @@ push_container_body :: proc(ctx: ^Context, cnt: ^Container, body: Rect, opt := O
 	cnt.body = body
 }
 
-@private 
+@private
 begin_root_container :: proc(ctx: ^Context, cnt: ^Container) {
 	push(&ctx.container_stack, cnt)
 	/* push container to roots list and push head command */
@@ -1394,7 +1386,7 @@ begin_root_container :: proc(ctx: ^Context, cnt: ^Container) {
 	push(&ctx.clip_stack, unclipped_rect)
 }
 
-@private 
+@private
 end_root_container :: proc(ctx: ^Context) {
 	/* push tail 'goto' jump command and set head 'skip' command. the final steps
 	** on initing these are done in end() */
@@ -1506,7 +1498,7 @@ window :: proc(ctx: ^Context, title: string, rect: Rect, opt := Options{}) -> bo
 
 scoped_end_window :: proc(ctx: ^Context, _: string, _: Rect, _: Options, ok: bool) {
 	if ok {
-		end_window(ctx)	
+		end_window(ctx)
 	}
 }
 
